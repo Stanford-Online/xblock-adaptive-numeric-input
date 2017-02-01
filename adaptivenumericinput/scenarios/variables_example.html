@@ -1,0 +1,28 @@
+<adaptivenumericinput
+    credit_list="[
+        {
+            "error_percent": "1", 
+            "feedback": "Your answer was exactly %%STUDENT_ERROR%% percent off.",
+            "score": "1.0"
+        },
+        {
+            "error_percent": "3", 
+            "feedback": "Your answer %%ERROR_PERCENT%% percent or less off.",
+            "score": "1.0"
+        },
+        {"error_absolute": "5", "score": "0.5"}, 
+        {"error_absolute": "9", "score": "0.1"}
+    ]"
+    display_name="Feedback Variables Example"
+    feedback_default="ANSWER = %%ANSWER%%, ERROR_ABSOLUTE = %%ERROR_ABSOLUTE%%, ERROR_PERCENT = %%ERROR_PERCENT%%, STUDENT_ANSWER = %%STUDENT_ANSWER%%, STUDENT_ERROR = %%STUDENT_ERROR%%"
+    instructor_answer="10"
+    max_attempts="2000"
+    prompt="
+        Feedback Variables Example
+        
+        This problem defines and demonstrates other variables available for use in feedback.
+       
+        Note that if error_absolute is not available when error_percent is used, and vice versa, then a double dash, "--", is returned in feedback.
+    "
+    weight="10"
+/>

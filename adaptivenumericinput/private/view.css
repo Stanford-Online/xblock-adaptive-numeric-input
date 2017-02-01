@@ -1,0 +1,9 @@
+/* CSS for AdaptiveNumericInputXBlock */
+
+.adaptivenumericinput_block .count {
+    font-weight: bold;
+}
+
+.adaptivenumericinput_block p {
+    cursor: pointer;
+}

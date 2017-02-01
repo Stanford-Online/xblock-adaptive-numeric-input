@@ -1,0 +1,29 @@
+<adaptivenumericinput
+    credit_list="[
+        {'error_absolute': '3', 'score': '0.7'},
+        {'error_absolute': '5', 'score': '0.5'},
+        {'error_absolute': '9', 'score': '0.1'}
+    ]"
+    display_name="Absolute Error Example"
+    feedback_default='Answer is within %%ERROR_ABSOLUTE%% percent.'
+    instructor_answer="10"
+    max_attempts="2000"
+    prompt="
+        Absolute Error Example: This problem demonstrates how to use 
+        absolute error insead of percent error ranges.    
+        
+        In this example the answer is 10. Ranges have been 
+        setup similarly to the Default Example except error_percent has been
+        replaced with error_absolute. Notice the change from ERROR_PERCENT 
+        to ERROR_ABSOLUTE in the Settings default_feedback too.
+        
+        Other features to note.  Exact answers receive full credit even when 
+        a matching range does not exist in Settings. The feedback in this 
+        case will be taken from the matching credit_list or 
+        feedback_default.  
+
+        In general, feedback will be taken from credit_list, 
+        feedback_default, and then fall back to submitted_message.
+    "
+    weight="10"
+/>
