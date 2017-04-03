@@ -4,10 +4,10 @@
     in Settings.  Each range can have targeted, dynamic feedback and an
     associated score.
 """
+from math import floor
+
 import os
 import pkg_resources
-
-from math import floor
 
 from django.utils.translation import ungettext
 
@@ -33,6 +33,19 @@ FEEDBACK_LIST = [
 ]
 
 
+def _answer_error(actual_answer, answer):
+    # Returns percent and absolute error of 'answer' from 'actual_answer'
+    # If 'actual_answer' is zero then percent_error will be None
+    # since it cannot be determined for that case.
+    absolute_error = None
+    percent_error = None
+    if actual_answer is not None and answer is not None:
+        absolute_error = abs(actual_answer - answer)
+        if actual_answer:
+            percent_error = 100 * (absolute_error / abs(actual_answer))
+    return absolute_error, percent_error
+
+
 def _get_float(value):
     try:
         return float(value)
@@ -40,17 +53,6 @@ def _get_float(value):
         return None
     except TypeError:
         return None
-
-
-def _answer_error(answer, actual_answer):
-    # Returns percent and absolute error of 'answer' from 'actual_answer'
-    # If 'actual_answer' is zero then percent_error will be None
-    # since it cannot be determined for that case.
-    percent_error = None
-    absolute_error = abs(answer - actual_answer)
-    if actual_answer:
-        percent_error = 100 * (absolute_error / actual_answer)
-    return percent_error, absolute_error
 
 
 def _read_scenario_files():
@@ -66,20 +68,19 @@ def _read_scenario_files():
         'bakers_dozen.html',
         'temp_conversion.html',
     ]
-    scenarios = '<adaptivenumericinput/>'
+    scenarios = '<adaptivenumericinput />'
     for scenario_file in scenario_files:
         scenario = open(dir_path + '/scenarios/' + scenario_file, 'r')
         scenarios += scenario.read()
-    scenarios_string = '''
-        <sequence_demo>{scenarios}</sequence_demo>
-        '''.format(
-            scenarios=scenarios,
-        )
+    scenarios_string = '''<sequence_demo>{scenarios}</sequence_demo>'''.format(
+        scenarios=scenarios,
+    )
     return scenarios_string
 
 
-class AdaptiveNumericInputXBlock(StudioEditableXBlockMixin, XBlock):
-    #  pylint: disable=too-many-ancestors, too-many-instance-attributes
+class AdaptiveNumericInput(StudioEditableXBlockMixin, XBlock):
+    # pylint: disable=too-many-ancestors, too-many-instance-attributes
+    # pylint: disable=too-many-public-methods
     """
     This xblock provides a way for instrutors to give targeted feedback
     to students on numeric reponse problems.
@@ -235,6 +236,10 @@ class AdaptiveNumericInputXBlock(StudioEditableXBlockMixin, XBlock):
         default='',
         scope=Scope.user_state,
     )
+    student_answer_float = Float(
+        default=None,
+        scope=Scope.user_state,
+    )
 
     editable_fields = (
         'display_name',
@@ -252,30 +257,30 @@ class AdaptiveNumericInputXBlock(StudioEditableXBlockMixin, XBlock):
 
     def build_fragment(
             self,
+            fragment_js=None,
             html_source=None,
             paths_css=[],
             paths_js=[],
             urls_css=[],
             urls_js=[],
-            fragment_js=None,
     ):
         #  pylint: disable=dangerous-default-value, too-many-arguments
         """
         Assemble the HTML, JS, and CSS for an XBlock fragment
         """
         fragment = Fragment(html_source)
-        for url in urls_css:
-            fragment.add_css_url(url)
+        if fragment_js:
+            fragment.initialize_js(fragment_js)
         for path in paths_css:
             url = self.get_resource_url(path)
             fragment.add_css_url(url)
-        for url in urls_js:
-            fragment.add_javascript_url(url)
         for path in paths_js:
             url = self.get_resource_url(path)
             fragment.add_javascript_url(url)
-        if fragment_js:
-            fragment.initialize_js(fragment_js)
+        for url in urls_css:
+            fragment.add_css_url(url)
+        for url in urls_js:
+            fragment.add_javascript_url(url)
         return fragment
 
     @classmethod
@@ -320,7 +325,7 @@ class AdaptiveNumericInputXBlock(StudioEditableXBlockMixin, XBlock):
                 result = 'correct'
         return result
 
-    def get_css_indicator_visibility(self):
+    def get_css_indicator_hidden(self):
         """
         Returns the visibility class for the correctness indicator html element
         """
@@ -339,7 +344,7 @@ class AdaptiveNumericInputXBlock(StudioEditableXBlockMixin, XBlock):
         xblock loads or is refreshed
         """
         result = 'nodisplay'
-        if len(self.hints) > 0:
+        if self.hints:
             result = ''
         return result
 
@@ -367,6 +372,9 @@ class AdaptiveNumericInputXBlock(StudioEditableXBlockMixin, XBlock):
                 feedback_message = self.credit_dict['feedback']
         if feedback_message:
             for key in FEEDBACK_LIST:
+                # First 2 chars and last two chars are '%',
+                # so they are removed.  The remaining string lowered
+                # could be a value in the credit dict.
                 credit_key = str(key.lower()[2:-2])
                 value = self.credit_dict.get(credit_key)
                 if value is None:
@@ -472,86 +480,16 @@ class AdaptiveNumericInputXBlock(StudioEditableXBlockMixin, XBlock):
         resource_url = self.runtime.local_resource_url(self, path)
         return resource_url
 
-    def set_credit_dict(self):
-        self.credit_dict = None
-        # Build a list of scored credit_dicts
-        score_list = []
-        high_score = 0
-        for credit_dict in self.credit_list:
-            # self.credit_list items cannot be modifed
-            # so the return credit_dicts are not original.
-            # Modifed credit_dicts are used to create adaptive feedback
-            # and set the score
-            tmp_credit = self.set_credit_dict_score(credit_dict)
-            if tmp_credit.get('credit_score') == high_score:
-                score_list.append(tmp_credit)
-            elif tmp_credit.get('credit_score') > high_score:
-                score_list = [tmp_credit]
-                high_score = tmp_credit['credit_score']
-        # Find best credit_dict
-        if score_list:
-            score_list.sort(key=lambda x: x['error_absolute'])
-            score_list.sort(key=lambda x: x['error_percent'])
-            # Check for exact answer and force full credit
-            if self.student_answer_float == self.instructor_answer:
-                score_list[0]['score'] = 1.0
-            self.credit_dict = score_list[0]
-        # No credit dicts found but exact answer
-        elif self.student_answer_float == self.instructor_answer:
-            # Minimum credit dict for scoring
-            self.credit_dict = {'score': 1.0}
-
-    def set_credit_dict_score(self, credit_dict):
-        # Credit Answer, default to instructor_answer
-        credit_answer = _get_float(
-            credit_dict.get('answer', self.instructor_answer)
-        )
-        # Score, default to 0 and in range [0, 1]
-        score = _get_float(credit_dict.get('score', 0.0))
-        score = max(min(1.0, score), 0.0)
-        tmp_credit = {
-            'answer': credit_answer,
-            # 'credit_score' is the evaluated score
-            'credit_score': None,
-            'error_percent': _get_float(credit_dict.get('error_percent')),
-            'error_absolute': _get_float(credit_dict.get('error_absolute')),
-            'feedback': credit_dict.get('feedback'),
-            # 'score' is the instructor defined score
-            'score':  score,
-            'student_answer': self.student_answer,
-            'student_error': None,
-        }
-        # Find error, percent has precedence over absolute
-        percent_error, absolute_error = _answer_error(
-            self.student_answer_float,
-            tmp_credit['answer'],
-        )
-        credit_percent_error = tmp_credit.get('error_percent')
-        credit_absolute_error = tmp_credit.get('error_absolute')
-        if (credit_percent_error is None and
-                credit_absolute_error is None):
-            credit_percent_error = 0
-        if (credit_percent_error is not None and
-                percent_error is not None and
-                round(credit_percent_error, 6) >= round(percent_error, 6)):
-            tmp_credit['credit_score'] = score
-            tmp_credit['student_error'] = percent_error
-        if credit_absolute_error is not None and absolute_error is not None:
-            if round(credit_absolute_error, 6) >= round(absolute_error, 6):
-                tmp_credit['credit_score'] = score
-                tmp_credit['student_error'] = absolute_error
-        return tmp_credit
-
     def set_score(self):
         """
         Determines score and publishes the user's score for the XBlock
         based on their answer.
-        Also sets the feedback text if found in credit dictionary.
         """
         score = 0.0
         if self.credit_dict and self.credit_dict.get('score') is not None:
             final_score = self.credit_dict.get('score')
-            if 0 <= final_score and 1 >= final_score:
+            # Only accepts score between 0 and 1 and limits them to one decimal
+            if final_score >= 0 and final_score <= 1:
                 score = floor(10 * final_score) / 10
         self.score = score
         self.runtime.publish(
@@ -586,23 +524,22 @@ class AdaptiveNumericInputXBlock(StudioEditableXBlockMixin, XBlock):
             self.student_answer = data['student_answer']
         result = {
             'status': 'success',
+            'hide_submit_class': self.get_css_hide_submit(),
             'progress_message': self.get_progress_message(),
-            'submitted_message': '',
-            'hide_submit_class': self._get_hide_submit_class(),
             'saved_message': self.saved_message,
+            'submitted_message': '',
         }
         return result
 
     def student_view(self, context=None):
         # pylint: disable=unused-argument
         """
-        The primary view of the AdaptiveNumericInputXBlock,
+        The primary view of the AdaptiveNumericInput,
         shown to students when viewing courses.
         """
-        view_html = AdaptiveNumericInputXBlock.get_resource_string('view.html')
+        view_html = AdaptiveNumericInput.get_resource_string('view.html')
         view_html = view_html.format(
             self=self,
-            # Message/Labels
             attempts_message=self.get_attempts_message(),
             display_name=self.display_name,
             feedback_label='',
@@ -611,7 +548,7 @@ class AdaptiveNumericInputXBlock(StudioEditableXBlockMixin, XBlock):
             hintdisplay_class=self.get_css_hint_button_display(),
             hide_submit_class=self.get_css_hide_submit(),
             indicator_class=self.get_css_indicator(),
-            indicator_visibility_class=self.get_css_indicator_visibility(),
+            indicator_visibility_class=self.get_css_indicator_hidden(),
             progress_message=self.get_progress_message(),
             prompt=self.prompt,
             saved_message='',
@@ -648,12 +585,14 @@ class AdaptiveNumericInputXBlock(StudioEditableXBlockMixin, XBlock):
         self.student_answer_float = _get_float(self.student_answer)
         if self.student_answer_float is None:
             return {'status': 'success'}
+        # Clear previous feedback_message
+        self.feedback_message = ''
         # If max was not set or max already reached then do not count score
         if self.max_attempts == 0 or self.count_attempts < self.max_attempts:
             self.count_attempts += 1
-            # self.credit_dict, if found is used for the feedback message
-            # and to set score.
-            self.set_credit_dict()
+            # self.credit_dict, if found, is used for the feedback message
+            # and in set score.
+            self.credit_dict = self.get_best_match_credit_dict()
             self.feedback_message = self.get_feedback_message()
             self.set_score()
         result = {
@@ -669,8 +608,7 @@ class AdaptiveNumericInputXBlock(StudioEditableXBlockMixin, XBlock):
             'indicator_class': self.get_css_indicator(),
             # CSS Class to indicate if correctness UI is shown in settings
             # 'self.display_correctness'
-            'indicator_visibility_class':
-                self.get_css_indicator_visibility(),
+            'indicator_visibility_class': self.get_css_indicator_hidden(),
             # CSS Class to hide submit UI because max attempts reached
             'hide_submit_class': self.get_css_hide_submit(),
             # Score 'out of' message in settings, 'self.weight' > 0
@@ -687,30 +625,144 @@ class AdaptiveNumericInputXBlock(StudioEditableXBlockMixin, XBlock):
         """
         Validates settings entered by the instructor.
         """
-        # TODO: Check which need validation.
-        # 'display_name',
-        # 'prompt',
-        # 'weight',
-        # 'max_attempts',
-        # 'display_correctness',
-        # 'credit_list',
-        # 'hints',
-        # 'submitted_message',
         if data.weight < 0:
-            msg = AdaptiveNumericInputXBlock.generate_validation_message(
+            msg = AdaptiveNumericInput.generate_validation_message(
                 'Weight Attempts cannot be negative'
             )
             validation.add(msg)
         if data.max_attempts < 0:
-            msg = AdaptiveNumericInputXBlock.generate_validation_message(
+            msg = AdaptiveNumericInput.generate_validation_message(
                 'Maximum Attempts cannot be negative'
             )
             validation.add(msg)
-        if not data.submitted_message:
-            msg = AdaptiveNumericInputXBlock.generate_validation_message(
-                'Submission Received Message cannot be blank'
+
+    # Credit Dict
+    def copy_credit_dict(self, credit_dict):
+        """
+        Build a copy of credit_dict with needed defaults
+
+        Required keys in credit_dict to set defaults
+            'answer', defaults to instructor defined self.instructor_answer
+            'error_percent' or 'error_absolute' must be present or
+                error_percent is set to require an exact answer, i.e. 0
+            'score', defaults to 0 and limited to [0, 1]
+        """
+        answer = _get_float(credit_dict.get('answer'))
+        if answer is None:
+            answer = self.instructor_answer
+        error_percent = _get_float(credit_dict.get('error_percent'))
+        error_absolute = _get_float(credit_dict.get('error_absolute'))
+        if error_percent is None and error_absolute is None:
+            error_percent = 0
+        score = _get_float(credit_dict.get('score', 1.0))
+        score = max(min(1.0, score), 0.0)
+        cp_credit_dict = {
+            'answer': answer,
+            # 'credit_score' is the evaluated score which only exists if
+            # 'score' is within defined error.
+            'credit_score': None,
+            'error_percent': error_percent,
+            'error_absolute': error_absolute,
+            'feedback': credit_dict.get('feedback'),
+            # 'score' is the instructor defined score needed for
+            # feedback.
+            'score':  score,
+            'student_answer': self.student_answer,
+            'student_error': None,
+        }
+        return cp_credit_dict
+
+    def get_best_match_credit_dict(self):
+        """
+        Find highest scored credit dict for feedback and score
+        """
+        best_credit_dict = None
+        high_score_list = self.get_credit_dicts_score_list()
+        if high_score_list:
+            high_score_list.sort(key=lambda x: x['error_absolute'])
+            high_score_list.sort(key=lambda x: x['error_percent'])
+            # Check for exact answer and force full credit but keep feedback
+            if self.student_answer_float == self.instructor_answer:
+                high_score_list[0]['score'] = 1.0
+            best_credit_dict = high_score_list[0]
+        # No credit dicts found but has exact answer
+        elif self.student_answer_float == self.instructor_answer:
+            # Minimum credit dict for scoring
+            best_credit_dict = {'score': 1.0}
+        return best_credit_dict
+
+    def get_credit_dict_score_and_error(
+            self,
+            answer,
+            error_percent,
+            error_absolute,
+            score,
+    ):
+        """
+        Returns a score(as credit_score) and a calculated error(student_error)
+        based on the supplied arguments.  The supplied arguments should come
+        from a instructor defined credit dict so any of the values may not
+        exist.
+
+        Assumes self.student_answer exists and has been converted to
+        a float in self.student_answer_float
+
+        Returns
+            (None, None) if the answer is not within the supplied error
+            credit_score will be passed through if an error match if found.
+            student_error will be the calculated error(% or abs) if match
+             found.
+
+        """
+        credit_score = None
+        student_error = None
+        # Find error, percent has precedence over absolute
+        (actual_absolute_error,
+         actual_percent_error) = _answer_error(
+             answer,
+             self.student_answer_float,
+         )
+        # Percentage error arbitraily has priority over absolute error
+        if (actual_percent_error is not None and error_percent is not None and
+                round(error_percent, 6) >= round(actual_percent_error, 6)):
+            credit_score = score
+            student_error = actual_percent_error
+        elif (actual_absolute_error is not None and
+              error_absolute is not None and
+              round(error_absolute, 6) >= round(actual_absolute_error, 6)):
+            credit_score = score
+            student_error = actual_absolute_error
+        return credit_score, student_error
+
+    def get_credit_dicts_score_list(self):
+        """
+        Return a list of scored credit_dicts
+        """
+        score_list = []
+        high_score = 0
+        for credit_dict in self.credit_list:
+            # self.credit_list items cannot be modifed so a temp dict is made
+            # and set with defaults.
+            # Copied credit dicts hold adaptive feedback variables.  They
+            # are used to later build feedback message and to set the score.
+            tmp_credit_dict = self.copy_credit_dict(
+                credit_dict
             )
-            validation.add(msg)
+            credit_score, student_error = self.get_credit_dict_score_and_error(
+                tmp_credit_dict['answer'],
+                tmp_credit_dict['error_percent'],
+                tmp_credit_dict['error_absolute'],
+                tmp_credit_dict['score'],
+            )
+            tmp_credit_dict['credit_score'] = credit_score
+            tmp_credit_dict['student_error'] = student_error
+            # Only return a list of the highest scored credit dict copies
+            if credit_score == high_score:
+                score_list.append(tmp_credit_dict)
+            elif credit_score > high_score:
+                score_list = [tmp_credit_dict]
+                high_score = credit_score
+        return score_list
 
     # Scenarios you'd like to see in the
     # workbench while developing your XBlock.
@@ -723,7 +775,7 @@ class AdaptiveNumericInputXBlock(StudioEditableXBlockMixin, XBlock):
                 'Adaptive Numeric Input XBlock',
                 scenarios
             ),
-            ("Multiple AdaptiveNumericInputXBlock",
+            ("Multiple AdaptiveNumericInput",
              """<vertical_demo>
                 <adaptivenumericinput/>
                 <adaptivenumericinput/>

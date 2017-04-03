@@ -1,0 +1,19 @@
+{
+    "weight_attempts_negative": {
+        "weight": -1,
+        "max_attempts": 1,
+        "max_word_count": 1,
+        "min_word_count": 1,
+        "submitted_message": "s",
+        "result": "Weight Attempts cannot be negative"
+    },
+    "max_attempts_negative": {
+        "weight": 0,
+        "max_attempts": -1,
+        "max_word_count": 1,
+        "min_word_count": 1,
+        "submitted_message": "s",
+        "result": "Maximum Attempts cannot be negative"
+    }
+}
+
