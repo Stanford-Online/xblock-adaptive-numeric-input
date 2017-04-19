@@ -615,7 +615,7 @@ class AdaptiveNumericInput(StudioEditableXBlockMixin, XBlock):
             'progress_message': self.get_progress_message(),
             # Instructor set message to indicated answer saved
             'saved_message': '',
-            #  Submission received message in settings 'self.submitted_message'
+            # Submission received message in settings 'self.submitted_message'
             # Returns blank if answer feedback was found in compute score
             'submitted_message': self.get_submitted_message(),
         }
