@@ -1,0 +1,36 @@
+<div class="adaptivenumericinput_block xmodule_display xmodule_CapaModule problem">
+    <h2 class="problem-header">{display_name}</h2>
+    <div class="progress-message">{progress_message}</div>
+    <p>{prompt}</p>
+    <div class="capa_inputtype textline {indicator_class}">
+        <div class="user_input">
+            <input type='number' class="student_answer" value="{student_answer}">
+            <span class="status {indicator_visibility_class}" aria-describedby="student_answer"></span>
+        </div>
+        <div class="capa_alert submission-received">
+            {submitted_message}
+        </div>
+        <div class="message">
+            <div class="feedback">
+                <div class="feedback-label">{feedback_label}</div>
+                <div class="feedback-text">{feedback_message}</div>
+            </div>
+        </div>
+    </div>
+    <div class="action">
+        <div class="hint-text" aria-live="polite">{hint_message}</div>
+        <button class="check Submit {hide_submit_class}" data-checking="Checking..." data-value="Submit">
+            Submit
+        </button>
+        <button class="hint {hintdisplay_class}" data-value="Hint">
+            Hint 
+        </button>
+        <button class="save {hide_submit_class}" data-value="Save">
+            Save
+        </button>
+        <div class="attempts-message" aria-live="polite">{attempts_message}</div>
+    </div>
+    <div class="capa_alert saved-message">
+        {saved_message}
+    </div>
+</div>

@@ -1,0 +1,54 @@
+<adaptivenumericinput
+        credit_list="[
+            {
+                "error_percent": "1",
+                "feedback": "Great. Answer is within %%ERROR_PERCENT%%.",
+                "score": "1.0"
+            },
+            {
+                "error_absolute": "0",
+                "feedback": "Exactly",
+                "score": "1.0"
+            },
+            {
+                "error_percent": "3",
+                "feedback": "Good. Answer is within %%ERROR_PERCENT%%.",
+                "score": "0.7"
+            },
+            {
+                "error_percent": "40",
+                "feedback": "Okay. Answer is within %%ERROR_PERCENT%%.",
+                "score": "0.5"
+            },
+            {
+                "error_percent": "50",
+                "feedback": "Close enough. Answer is within %%ERROR_PERCENT%%.",
+                "score": "0.5"
+            },
+            {
+                "error_percent": "60",
+                "feedback": "Eh...Okay, but try again.  Answer is within %%ERROR_PERCENT%%.",
+                "score": "0.5"
+            },
+            {
+                "answer": "90.5",
+                "error_absolute": "0.5",
+                "feedback": "Did you convert C to F?",
+                "score": "0.0"
+            }
+        ]"
+        display_name="Percent Error: Temperature Conversion"
+        feedback_default=''
+        instructor_answer="0.278"
+        max_attempts="2000"
+        prompt="
+            Question: Convert 32.5 F to C?
+            
+            This examples demonstrates how credit dictionaries are sorted.  
+            
+            Answer is 0.278.  Full credit is given for any answer within 1% but different feedback is desired for an exact answer. Also half credit is given for answers less than 60% off but different feedback is wanted for 40, 50 and 60 percentiles(0.2, 0.16, 0.13).
+           
+            Sorting is by highest score, calculated student_error, error_percent, and then error_absolute. Don't use error_percent and error_absolute for answer groups with the same score.
+        "
+        weight="10"
+/>

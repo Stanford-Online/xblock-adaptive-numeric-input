@@ -1,0 +1,42 @@
+<adaptivenumericinput
+        credit_list="[
+            {
+                "error_percent": "0",
+                "feedback": "Perfect! Full Credit.",
+                "score": "1.0"
+            },
+            {
+                "error_percent": "10",
+                "feedback": "Good! Full Credit.",
+                "score": "1.0"
+            },
+            {
+                "error_percent": "5",
+                "feedback": "Great! Full Credit.",
+                "score": "1.0"
+            },
+            {"error_percent": "45", "score": "0.8"},
+            {
+                "error_percent": "50",
+                "feedback": "No so good! Half Credit.",
+                "score": "0.5"
+            },
+            {
+                "error_percent": "55",
+                "feedback": "Could be better! Half Credit.",
+                "score": "0.5"
+            }
+        ]"
+        display_name="Default Example with multiple full credit answers."
+        feedback_default="Answer is within %%ERROR_PERCENT%% percent."
+        instructor_answer="10"
+        max_attempts="2000"
+        prompt="
+            Default Example with multiple full credit answers.
+             
+            This problem demonstrates how to provide specific feedback for different student answers despite them having the same score. 
+            
+            In this example the answer is 10.  Ranges have been set up similar to the Default Example but multiple full credit ranges have the same score.  Ranges are sorted by highest score and then error_percent or error_absolute.  Try not to mix error_percent and error_absolute on answers with the same score.
+        "
+        weight="10"
+/>

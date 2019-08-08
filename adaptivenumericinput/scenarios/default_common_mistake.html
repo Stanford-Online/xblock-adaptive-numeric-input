@@ -1,0 +1,38 @@
+<adaptivenumericinput
+        credit_list="[
+            {
+                "error_percent": "0",
+                "score": "1.0",
+                "feedback": ""
+            },
+            {"error_percent": "10", "score": "0.9"},
+            {"error_percent": "20", "score": "0.8"},
+            {"error_percent": "30", "score": "0.7"},
+            {"error_percent": "40", "score": "0.6"},
+            {"error_percent": "50", "score": "0.5"},
+            {"error_percent": "60", "score": "0.4"},
+            {"error_percent": "70", "score": "0.3"},
+            {"error_percent": "80", "score": "0.2"},
+            {"error_percent": "90", "score": "0.1"},
+            {
+                "answer": "1000",
+                "error_percent": "1",
+                "feedback": "This is a common mistake. Did you remember to convert from centimeters to meters?",
+                "score": "0"
+            }
+        ]"
+        display_name="Default Example with a common mistake and overriding Settings defaults."
+        feedback_default="Answer is within %%ERROR_PERCENT%% percent."
+        instructor_answer="10"
+        max_attempts="2000"
+        prompt="
+            Default Example with a common mistake and overriding Settings defaults.
+            
+            This problem demonstrates how to override ranges keys to provide targeted feedback for a common incorrect student answer.
+            
+            In this example the answer is 10.  Ranges have been setup similarly to the Default Example with a range added at the end.  This additional range catches the common incorrect answer of 1000 with a score of zero and provides targeted feedback to help the student understand their mistake.
+            
+            Other features to note.  How to override default_feedback in a range fields.  The exact answer does not use default_feedback by settings feedback to blank.
+        "
+        weight="10"
+/>

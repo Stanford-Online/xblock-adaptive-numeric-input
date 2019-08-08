@@ -1,0 +1,28 @@
+<adaptivenumericinput
+        credit_list="[
+            {"error_absolute": "0", "score": "1"},
+            {"error_percent": "10", "score":0.9},
+            {"error_percent": "40", "score":0.6},
+            {"error_percent": "50", "score":0.5},
+            {
+                "error_percent": "99.99",
+                "feedback": ""
+            },
+            {
+                "error_percent": "150",
+                "feedback": "Between 100% and 150% has some different feedback."
+            }
+        ]"
+        display_name="Range Blocking Example"
+        feedback_default="Answer is within %%ERROR_PERCENT%% percent."
+        instructor_answer="10"
+        max_attempts="2000"
+        prompt="
+            Range Blocking Example.
+            
+            This problem demonstrates how to block answer ranges with blank feedback.
+            
+            The answer is 10.  Feedback is desired for answers between 0% and 50% error and between 100% and 150% error. Other features to note. How score defaults to zero if a range does not have a score.  And shows other variables in feedback_default.
+        "
+        weight="10"
+/>
